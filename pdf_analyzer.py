@@ -89,6 +89,10 @@ def analyze_text(text):
     meaningful_words = {word: count for word, count in word_freq.items() 
                        if word not in stop_words and len(word) > 2}
     
+    # Calculate average word length in a single pass
+    total_word_length = sum(len(word) for word in clean_words)
+    word_list_length = len(clean_words)
+    
     return {
         'word_count': word_count,
         'char_count': char_count,
@@ -97,7 +101,7 @@ def analyze_text(text):
         'paragraph_count': paragraph_count,
         'unique_words': len(set(clean_words)),
         'top_words': Counter(meaningful_words).most_common(30),
-        'avg_word_length': sum(len(word) for word in clean_words) / len(clean_words) if clean_words else 0,
+        'avg_word_length': total_word_length / word_list_length if word_list_length > 0 else 0,
         'avg_sentence_length': word_count / sentence_count if sentence_count > 0 else 0
     }
 
