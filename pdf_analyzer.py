@@ -20,7 +20,7 @@ def extract_text_from_pdf(pdf_path):
         pdf_path: Path to the PDF file
         
     Returns:
-        Extracted text as a string
+        tuple: (extracted_text, total_pages) - Extracted text as a string and total page count
     """
     try:
         import PyPDF2
@@ -118,12 +118,12 @@ def find_key_sections(text):
     """
     sections = {}
     
-    # Common section headers patterns
+    # Common section headers patterns (ordered to avoid ambiguous matches)
     patterns = {
-        'introduction': r'(?i)(introduction|overview|abstract|summary)',
+        'introduction': r'(?i)(introduction|overview|abstract)',
         'methodology': r'(?i)(method|methodology|approach|procedure)',
         'results': r'(?i)(results|findings|outcomes)',
-        'conclusion': r'(?i)(conclusion|summary|final remarks|closing)',
+        'conclusion': r'(?i)(conclusion|final remarks|closing)',
         'references': r'(?i)(references|bibliography|citations|works cited)',
         'acknowledgments': r'(?i)(acknowledgments?|acknowledgements?)'
     }
@@ -153,19 +153,28 @@ def extract_numbers_and_dates(text):
     Returns:
         Dictionary containing extracted numbers and dates
     """
-    # Find all numbers (including decimals and percentages)
-    numbers = re.findall(r'\b\d+(?:\.\d+)?%?\b', text)
+    # Use a single pass with combined pattern for better performance on large documents
+    # Pattern captures: numbers with optional decimals/percentages, dates, and years
+    combined_pattern = r'\b\d+(?:\.\d+)?%?\b|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b'
     
-    # Find potential dates
-    dates = re.findall(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b', text)
+    numbers = []
+    dates = []
+    years = set()
     
-    # Find potential years
-    years = re.findall(r'\b(19|20)\d{2}\b', text)
+    for match in re.finditer(combined_pattern, text):
+        matched_text = match.group()
+        if '/' in matched_text or '-' in matched_text:
+            dates.append(matched_text)
+        else:
+            numbers.append(matched_text)
+            # Check if it's a year
+            if len(matched_text) == 4 and matched_text.startswith(('19', '20')):
+                years.add(matched_text)
     
     return {
         'numbers_count': len(numbers),
         'dates_count': len(dates),
-        'years_found': list(set(years))[:20]  # Limit to 20 unique years
+        'years_found': list(years)[:20]  # Limit to 20 unique years
     }
 
 
